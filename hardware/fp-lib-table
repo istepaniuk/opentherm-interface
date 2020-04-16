@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name rj)(type KiCad)(uri /home/istepaniuk/Arduino/opentherm-interface/hardware)(options "")(descr ""))
+)

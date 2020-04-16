@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name d_45degree)(type Legacy)(uri ${KIPRJMOD}/d_45degree.lib)(options "")(descr ""))
+)

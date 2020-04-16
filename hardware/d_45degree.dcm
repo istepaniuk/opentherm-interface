@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP D_45Degree
+D Diode
+K diode
+F ~
+$ENDCMP
+#
+#End Doc Library
