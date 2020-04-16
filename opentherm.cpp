@@ -1,3 +1,13 @@
+/*
+  opentherm.cpp - OpenTherm library
+
+  Copyright(c) 2018-2020 - Jiří Praus - https://github.com/jpraus/arduino-opentherm/
+  Copyright(c) 2020 - Iván Stepaniuk - https://github.com/istepaniuk/opentherm-interface
+
+  Licensed under the Attribution-NonCommercial-ShareAlike 4.0 International license
+  See accompanying LICENSE file.
+*/
+
 #include "opentherm.h"
 #include "Arduino.h"
 
