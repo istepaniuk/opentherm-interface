@@ -11,7 +11,6 @@
 
 bool requested_ch_enabled = false;
 float requested_ch_set_point = 0.0;
-float requested_max_modulation = 100.0;
 
 char command_buffer[20];
 unsigned int received_bytes = 0;
@@ -79,8 +78,6 @@ OpenthermData get_next_ot_message_to_send()
         next_message.u16(build_master_status_message());
     } else if (next_message.id == OT_MSGID_CH_SETPOINT) {
         next_message.f88(requested_ch_set_point);
-    } else if (next_message.id == OT_MSGID_MAX_RELATIVE_MODULATION) {
-        next_message.f88(requested_max_modulation);
     }
 
     return next_message;
@@ -88,22 +85,32 @@ OpenthermData get_next_ot_message_to_send()
 
 void print_status()
 {
-    Serial.print("=== fault:");
-    Serial.println(boiler_state.fault);
-    Serial.print("=== ch_on:");
+    Serial.print("== ch_on:");
     Serial.println(boiler_state.ch_on);
-    Serial.print("=== dhw_on:");
-    Serial.println(boiler_state.dhw_on);
-    Serial.print("=== flame_on:");
+
+    Serial.print("== flame_on:");
     Serial.println(boiler_state.flame_on);
-    Serial.print("=== modulation_level:");
+
+    Serial.print("== modulation_level:");
     Serial.println(boiler_state.modulation_level);
-    Serial.print("=== boiler_flow_water_temp:");
+
+    Serial.print("== boiler_flow_water_temp:");
     Serial.println(boiler_state.boiler_flow_water_temp);
-    Serial.print("=== max_ch_set_point:");
-    Serial.println(boiler_state.max_ch_set_point);
-    Serial.print("=== ch_water_pressure:");
-    Serial.println(boiler_state.ch_water_pressure);
+
+    if(debug_level > 0) {
+        Serial.print("== fault:");
+        Serial.println(boiler_state.fault);
+
+        Serial.print("== dhw_on:");
+        Serial.println(boiler_state.dhw_on);
+
+        Serial.print("== max_ch_set_point:");
+        Serial.println(boiler_state.max_ch_set_point);
+
+        Serial.print("== ch_water_pressure:");
+        Serial.println(boiler_state.ch_water_pressure);
+    }
+
     Serial.println();
 }
 
@@ -117,8 +124,6 @@ void handle_ot_response(OpenthermData response)
             boiler_state.ch_on = bitRead(response.valueLB, 1);
             boiler_state.dhw_on = bitRead(response.valueLB, 2);
             boiler_state.flame_on = bitRead(response.valueLB, 3);
-            break;
-        case OT_MSGID_SLAVE_CONFIG:
             break;
         case OT_MSGID_MODULATION_LEVEL:
             boiler_state.modulation_level = response.f88();
@@ -134,8 +139,8 @@ void handle_ot_response(OpenthermData response)
             break;
     }
 
-    if (debug_level > 0) {
-        Serial.print("<<< ");
+    if (debug_level > 1) {
+        Serial.print("<< ");
         OPENTHERM::printToSerial(response);
         Serial.println();
     }
@@ -154,8 +159,8 @@ void handle_ot_conversation()
     if (OPENTHERM::isIdle()) {
         digitalWrite(LED, LOW);
         OpenthermData message_to_send = get_next_ot_message_to_send();
-        if (debug_level > 0) {
-            Serial.print(">>> ");
+        if (debug_level > 1) {
+            Serial.print(">> ");
             OPENTHERM::printToSerial(message_to_send);
             Serial.println();
         }
@@ -184,25 +189,20 @@ void handle_ot_conversation()
 void parse_received_command()
 {
     char command[8];
-    float param_1 = 0.0;
-    float param_2 = 100.0;
+    float param = 0.0;
 
-    int parsed_count = sscanf(command_buffer, "%s %f %f", command, &param_1, &param_2);
+    int parsed_count = sscanf(command_buffer, "%s %f", command, &param);
 
     if (parsed_count < 1) goto exit_parse_error;
 
     if (strncmp(command, "on", 2) == 0) {
-        if (parsed_count != 3 || param_1 > 100 || param_1 < 0 || param_2 < 0 || param_2 > 100) {
+        if (parsed_count != 2 || param > 100 || param < 0) {
             goto exit_parse_error;
         }
         requested_ch_enabled = true;
-        requested_ch_set_point = param_1;
-        requested_max_modulation = param_2;
+        requested_ch_set_point = param;
         Serial.print("==> Heating ON. Set point:");
-        Serial.print(param_1);
-        Serial.print(" Max. modulation:");
-        Serial.print(param_2);
-        Serial.println();
+        Serial.println(param);
         return;
     } else if (strncmp(command_buffer, "off", 3) == 0) {
         if (parsed_count != 1) goto exit_parse_error;
@@ -210,9 +210,9 @@ void parse_received_command()
         Serial.println("==> Heating OFF");
         return;
     } else if (strncmp(command_buffer, "debug", 5) == 0) {
-        if (parsed_count != 2) goto exit_parse_error;
-        debug_level = (param_1 > 0);
-        Serial.print("==> Debug level");
+        if (parsed_count != 2 || param > 2 || param < 0) goto exit_parse_error;
+        debug_level = (int) param;
+        Serial.print("==> Debug level ");
         Serial.println(debug_level);
         return;
     }
